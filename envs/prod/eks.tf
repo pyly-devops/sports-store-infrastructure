@@ -56,6 +56,11 @@ module "eks" {
 
   access_entries = local.cluster_admin_access_entries
 
+  # Defined in addons.tf, not here, so this file stays cluster/node-group
+  # concerns only — but it has to be wired into this same module block since
+  # a module call can't be split across files.
+  cluster_addons = local.cluster_addons
+
   eks_managed_node_groups = {
     default = {
       ami_type       = "AL2023_x86_64_STANDARD"
