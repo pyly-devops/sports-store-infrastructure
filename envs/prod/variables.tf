@@ -28,6 +28,16 @@ variable "availability_zones" {
   description = "AZs for the VPC's public/private subnets. EKS requires the control-plane subnets to span at least 2 AZs, so 2 is the floor here even though the node group (below) is pinned to a single AZ to keep this a true single-AZ cost profile."
   type        = list(string)
   default     = ["us-east-1a", "us-east-1b"]
+
+  # The lower bound is EKS's own rule. The upper bound is vpc.tf's fixed
+  # block reservation: public takes CIDR blocks 0..7 and private 8..15, so a
+  # 9th AZ would hand the 9th public subnet the same block as the 1st
+  # private one. Caught here as a clear message at plan time rather than as
+  # an overlapping-CIDR error from the AWS API mid-apply.
+  validation {
+    condition     = length(var.availability_zones) >= 2 && length(var.availability_zones) <= 8
+    error_message = "availability_zones must contain between 2 and 8 AZs: EKS requires at least 2, and vpc.tf reserves 8 CIDR blocks per subnet tier."
+  }
 }
 
 # --- EKS cluster access --------------------------------------------------
