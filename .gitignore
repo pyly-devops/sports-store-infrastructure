@@ -1,5 +1,7 @@
 .terraform/
-.terraform.lock.hcl
+# .terraform.lock.hcl is committed on purpose: it's how HCP Terraform resolves
+# the same provider versions a contributor saw locally. Ignoring it would let
+# remote runs silently pick up a different provider build.
 *.tfstate
 *.tfstate.*
 *.tfvars
