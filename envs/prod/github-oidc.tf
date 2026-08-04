@@ -1,14 +1,16 @@
 # Trusts GitHub Actions' OIDC tokens, for Milestone 6's per-repo CI
 # workflows to assume a push role without ever holding a static AWS key
 # (CLAUDE.md non-negotiable).
-data "tls_certificate" "github_actions" {
+#
+# Looked up, not created: AWS allows exactly one OIDC provider per URL per
+# account, and this account already has one for
+# token.actions.githubusercontent.com from unrelated work that predates this
+# project. A `resource` here would fail on apply with EntityAlreadyExists.
+# Every account should only ever have one of these — any number of roles can
+# trust the same provider, so referencing it is the correct shape even in an
+# account with no pre-existing conflict, not just a workaround for this one.
+data "aws_iam_openid_connect_provider" "github_actions" {
   url = "https://token.actions.githubusercontent.com"
-}
-
-resource "aws_iam_openid_connect_provider" "github_actions" {
-  url             = "https://token.actions.githubusercontent.com"
-  client_id_list  = ["sts.amazonaws.com"]
-  thumbprint_list = [data.tls_certificate.github_actions.certificates[0].sha1_fingerprint]
 }
 
 # One role per app repo, for_each over the same var.app_components map
@@ -22,7 +24,7 @@ data "aws_iam_policy_document" "github_actions_trust" {
 
     principals {
       type        = "Federated"
-      identifiers = [aws_iam_openid_connect_provider.github_actions.arn]
+      identifiers = [data.aws_iam_openid_connect_provider.github_actions.arn]
     }
 
     condition {
