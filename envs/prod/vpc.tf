@@ -16,8 +16,8 @@ module "vpc" {
   enable_dns_support   = true
 
   enable_nat_gateway = true
-  # One NAT gateway (~$32/mo) shared across all 3 AZs, instead of one per AZ
-  # (~$96/mo). Trade-off: if that AZ has an outage, private-subnet egress
+  # One NAT gateway (~$32/mo) shared across both AZs, instead of one per AZ
+  # (~$64/mo). Trade-off: if that AZ has an outage, private-subnet egress
   # dies cluster-wide, not just in one AZ. Wrong call for real production,
   # correct call for infra that's stood up for demos/verification and torn
   # back down — being able to say which is which is the point.

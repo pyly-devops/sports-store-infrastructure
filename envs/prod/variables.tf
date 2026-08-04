@@ -25,9 +25,9 @@ variable "vpc_cidr" {
 }
 
 variable "availability_zones" {
-  description = "AZs to spread public/private subnets across. Exactly 3, per the plan."
+  description = "AZs for the VPC's public/private subnets. EKS requires the control-plane subnets to span at least 2 AZs, so 2 is the floor here even though the node group (below) is pinned to a single AZ to keep this a true single-AZ cost profile."
   type        = list(string)
-  default     = ["us-east-1a", "us-east-1b", "us-east-1c"]
+  default     = ["us-east-1a", "us-east-1b"]
 }
 
 # --- EKS cluster access --------------------------------------------------

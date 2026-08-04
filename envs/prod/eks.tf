@@ -63,6 +63,11 @@ module "eks" {
 
   eks_managed_node_groups = {
     default = {
+      # Control-plane ENIs still span both AZs (subnet_ids above), but the
+      # nodes themselves are pinned to one AZ — no cross-AZ data-transfer
+      # charges between pods, and a smaller footprint than a 2-AZ spread.
+      subnet_ids = [module.vpc.private_subnets[0]]
+
       ami_type       = "AL2023_x86_64_STANDARD"
       instance_types = var.node_instance_types
 
