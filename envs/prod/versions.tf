@@ -10,6 +10,10 @@ terraform {
       source  = "hashicorp/aws"
       version = "~> 5.0"
     }
+    tls = {
+      source  = "hashicorp/tls"
+      version = "~> 4.0"
+    }
   }
 
   # VCS-driven workspace: HCP Terraform posts a speculative plan on every PR
