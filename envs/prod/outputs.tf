@@ -44,6 +44,21 @@ output "lb_controller_role_arn" {
   value       = module.lb_controller_irsa.iam_role_arn
 }
 
+output "external_secrets_role_arn" {
+  description = "Milestone 7 passes this into the external-secrets chart's serviceAccount.annotations (argocd/applications/10-external-secrets.yaml)."
+  value       = module.external_secrets_irsa.iam_role_arn
+}
+
+output "app_secret_arn" {
+  description = "Milestone 7's ClusterSecretStore references this. Not sensitive — an ARN doesn't authenticate as anything by itself."
+  value       = aws_secretsmanager_secret.app.arn
+}
+
+output "app_secret_name" {
+  description = "Milestone 7 bootstrap runbook step 2 (`aws secretsmanager put-secret-value --secret-id <this>`)."
+  value       = aws_secretsmanager_secret.app.name
+}
+
 output "ecr_registry_url" {
   description = "Milestone 5's imageRegistry Helm value."
   value       = "${data.aws_caller_identity.current.account_id}.dkr.ecr.${var.aws_region}.amazonaws.com"
