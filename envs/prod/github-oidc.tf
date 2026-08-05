@@ -37,10 +37,24 @@ data "aws_iam_policy_document" "github_actions_trust" {
     # enforces "PRs never publish an image", not workflow discipline. A PR
     # run's token has sub = repo:.../pull/<n>, which never matches, so it
     # cannot assume the role at all.
+    #
+    # StringLike, not StringEquals, and with a wildcard segment: GitHub's
+    # current default `sub` claim is
+    # "repo:<org>@<org_id>/<repo>@<repo_id>:ref:refs/heads/main" — it embeds
+    # the org's and repo's numeric IDs, not the plain
+    # "repo:<org>/<repo>:ref:..." shape this condition originally assumed
+    # (which is what every reference/tutorial for this feature still shows).
+    # Confirmed against real CloudTrail AssumeRoleWithWebIdentity denials
+    # during Milestone 7, not from documentation — every one of the 7 roles
+    # created in Milestone 6 had never actually been assumable from `main`.
+    # The org ID is still pinned (a real security boundary: no other org can
+    # match); the repo ID is wildcarded because it would change if this repo
+    # were ever deleted and recreated, and the repo NAME already does the
+    # scoping the ID would otherwise add.
     condition {
-      test     = "StringEquals"
+      test     = "StringLike"
       variable = "token.actions.githubusercontent.com:sub"
-      values   = ["repo:${var.github_org}/${each.key}:ref:refs/heads/main"]
+      values   = ["repo:${var.github_org}@*/${each.key}@*:ref:refs/heads/main"]
     }
   }
 }
