@@ -49,9 +49,40 @@ variable "cluster_endpoint_public_access_cidrs" {
 }
 
 variable "cluster_admin_principal_arns" {
-  description = "IAM principal ARNs (users/roles) granted AmazonEKSClusterAdminPolicy via an EKS access entry. Must include the AWS owner's own principal — the cluster is created by the HCP run role, an identity nobody logs in as, so this is the only way a human gets kubectl access. Set via an HCP workspace variable, not defaulted here."
+  description = "IAM principal ARNs (users/roles) granted AmazonEKSClusterAdminPolicy via an EKS access entry. Must include the AWS owner's own principal — the cluster is created by the HCP run role, an identity nobody logs in as, so this is the only way a human gets kubectl access. Set via an HCP workspace variable."
   type        = list(string)
-  default     = []
+
+  # DELIBERATELY NO DEFAULT.
+  #
+  # eks.tf sets enable_cluster_creator_admin_permissions = false, and the
+  # creating principal is the HCP run role — an identity nobody logs in as. So
+  # this list is the ONLY way a human ever gets kubectl access to the cluster.
+  #
+  # This used to default to [], with the hazard written up in the description
+  # above. A description is not a control: it is read by people who already
+  # know and skipped by everyone else. With a default, forgetting it was a
+  # SILENT SUCCESS — ~92 resources apply cleanly, billing starts, and the
+  # failure only surfaces when someone runs kubectl against a cluster they
+  # cannot administer. The only fix at that point is another apply.
+  #
+  # Required, it fails during variable evaluation instead, before a single
+  # provider call. That costs nothing and cannot be forgotten.
+
+  validation {
+    condition     = length(var.cluster_admin_principal_arns) > 0
+    error_message = "At least one admin principal is required, or the cluster comes up with no human administrator and only another apply can fix it. Set cluster_admin_principal_arns as an HCP workspace variable."
+  }
+
+  # The failure mode that is worse than forgetting: a malformed or typo'd ARN.
+  # An EKS access entry accepts one without complaint and grants exactly
+  # nobody, so the cluster looks configured and is not. Catch it here.
+  validation {
+    condition = alltrue([
+      for arn in var.cluster_admin_principal_arns :
+      can(regex("^arn:aws[a-z-]*:iam::[0-9]{12}:(user|role)/", arn))
+    ])
+    error_message = "Each entry must be an IAM user or role ARN, e.g. arn:aws:iam::123456789012:role/Admin."
+  }
 }
 
 # --- Node group ----------------------------------------------------------
