@@ -90,7 +90,41 @@ variable "cluster_admin_principal_arns" {
 variable "node_instance_types" {
   description = "Instance types for the default managed node group."
   type        = list(string)
-  default     = ["t3.small"]
+
+  # t3.large as of Milestone 8, up from t3.small. This is the only change in
+  # the milestone that alters the AWS bill.
+  #
+  # WHY IT HAD TO CHANGE. Two t3.small give 2 GiB each; after kubelet and
+  # system reservation and the existing DaemonSets, roughly 3 GiB is
+  # schedulable across the whole cluster, and the application plus MongoDB
+  # already claim most of it. Milestone 8 adds about 4-4.5 GiB of requests:
+  # Prometheus ~2 GiB, Loki ~1 GiB, Grafana and Alertmanager ~256 MiB each,
+  # kube-state-metrics ~128 MiB, and node-exporter plus Alloy on every node.
+  #
+  # It does not fit, and the failure mode is misleading: Prometheus sits
+  # Pending on "Insufficient memory", which reads as a chart problem rather
+  # than a capacity one. This was anticipated when Milestone 4 was written -
+  # see the note on node_group_desired_size below.
+  #
+  # WHY 2 x t3.large AND NOT 4 x t3.medium. The price is identical
+  # (2 x $0.0832 vs 4 x $0.0416 per hour) and both give 16 GiB raw, but each
+  # node pays a fixed tax: kubelet reservation, the OS, and one replica each
+  # of node-exporter, Alloy, aws-node and kube-proxy. Four nodes pay it four
+  # times, two pay it twice - roughly 1.5 GiB more actually schedulable on the
+  # two-node shape. Fewer nodes also means fewer DaemonSet pods to wait on at
+  # demo time.
+  #
+  # COST: the cluster goes from ~$0.19/hr to ~$0.32/hr while it is up, plus
+  # ~30 GiB of gp3 for the Prometheus, Loki and Alertmanager volumes (about
+  # $2.40/month, under half a cent an hour). `terraform destroy` remains the
+  # teardown path and removes all of it.
+  #
+  # CHANGING THIS REPLACES THE NODE GROUP: new nodes come up and the old ones
+  # drain. MongoDB's PVC detaches and reattaches within the same AZ, since the
+  # node group is pinned to one. It is not a cluster rebuild, but it should be
+  # done in the same apply as a fresh cluster rather than as a second,
+  # separate replacement.
+  default = ["t3.large"]
 }
 
 variable "node_group_min_size" {
@@ -100,7 +134,7 @@ variable "node_group_min_size" {
 }
 
 variable "node_group_desired_size" {
-  description = "Desired node count. Two t3.small covers Milestone 4/5 (7 app pods + MongoDB). Milestone 8's kube-prometheus-stack + Loki will need this raised (or the instance type bumped to t3.large) — see docs/status.md."
+  description = "Desired node count. Stays at 2: Milestone 8's capacity need was met by widening the nodes to t3.large rather than adding more of them — see node_instance_types above for why that is cheaper per usable GiB."
   type        = number
   default     = 2
 }
