@@ -89,3 +89,30 @@ resource "aws_iam_role_policy" "github_actions_push" {
   role   = aws_iam_role.github_actions_push[each.key].id
   policy = data.aws_iam_policy_document.github_actions_push[each.key].json
 }
+
+# The gateway is the only component whose build CONSUMES another component's
+# image: its Dockerfile does `FROM ${FRONTEND_IMAGE}`, pointing at
+# sports-store/frontend. That is a pull, and the shared ecr-push policy above
+# scopes every action to the role's OWN repository — correctly, and this is the
+# single documented exception rather than a hole punched in the general rule.
+#
+# Pull only. The gateway role still cannot push to sports-store/frontend, so a
+# compromised gateway workflow can read the bundle it already bakes into its own
+# image and can do nothing else with it.
+data "aws_iam_policy_document" "gateway_frontend_pull" {
+  statement {
+    effect = "Allow"
+    actions = [
+      "ecr:BatchCheckLayerAvailability",
+      "ecr:GetDownloadUrlForLayer",
+      "ecr:BatchGetImage",
+    ]
+    resources = [aws_ecr_repository.app["sports-store-frontend"].arn]
+  }
+}
+
+resource "aws_iam_role_policy" "gateway_frontend_pull" {
+  name   = "ecr-pull-frontend"
+  role   = aws_iam_role.github_actions_push["sports-store-gateway"].id
+  policy = data.aws_iam_policy_document.gateway_frontend_pull.json
+}
