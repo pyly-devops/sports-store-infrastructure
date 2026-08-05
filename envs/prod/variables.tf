@@ -96,13 +96,13 @@ variable "node_instance_types" {
 variable "node_group_min_size" {
   description = "Minimum node count."
   type        = number
-  default     = 2
+  default     = 3
 }
 
 variable "node_group_desired_size" {
-  description = "Desired node count. Two t3.small covers Milestone 4/5 (7 app pods + MongoDB). Milestone 8's kube-prometheus-stack + Loki will need this raised (or the instance type bumped to t3.large) — see docs/status.md."
+  description = "Desired node count. Two t3.small covered Milestone 4/5 (7 app pods + MongoDB) at ~99% memory requests already committed — measured directly (kubectl describe node) during Milestone 7, not assumed, when Argo CD (~950Mi) and External Secrets Operator (~200Mi) needed to schedule on top with zero headroom left. Raised to 3 rather than bumping the instance type: keeps the per-node cost profile, adds a full node's worth of budget (~1.9 vCPU/1.47Gi allocatable). Milestone 8's kube-prometheus-stack + Loki will likely need this raised again (or the instance type bumped to t3.medium/large) — see docs/status.md."
   type        = number
-  default     = 2
+  default     = 3
 }
 
 variable "node_group_max_size" {
