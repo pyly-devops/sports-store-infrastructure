@@ -32,6 +32,19 @@ locals {
 
     aws-ebs-csi-driver = {
       service_account_role_arn = module.ebs_csi_irsa.iam_role_arn
+
+      # Chart default is 2 controller replicas for HA against node failure,
+      # but the controller is not on the data path (only provisions/attaches
+      # volumes) and this cluster's node group is single-AZ anyway (M4), so
+      # the second replica buys no real availability here. Milestone 8 needs
+      # the 232Mi it holds (measured: 5 sidecars x 40Mi + liveness-probe
+      # 32Mi) to fit kube-prometheus-stack + Loki on 4 t3.small nodes without
+      # forcing app services to 1 replica. See stage8-plan-observability.md §1.
+      configuration_values = jsonencode({
+        controller = {
+          replicaCount = 1
+        }
+      })
     }
   }
 }
