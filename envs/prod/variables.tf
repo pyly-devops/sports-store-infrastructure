@@ -96,13 +96,13 @@ variable "node_instance_types" {
 variable "node_group_min_size" {
   description = "Minimum node count."
   type        = number
-  default     = 4
+  default     = 5
 }
 
 variable "node_group_desired_size" {
-  description = "Desired node count. Two t3.small covered Milestone 4/5 (7 app pods + MongoDB) at ~99% memory requests already committed — measured directly (kubectl describe node) during Milestone 7, not assumed, when Argo CD (~950Mi) and External Secrets Operator (~200Mi) needed to schedule on top with zero headroom left. Raised to 3 rather than bumping the instance type: keeps the per-node cost profile, adds a full node's worth of budget (~1.9 vCPU/1.47Gi allocatable). Raised again to 4 for Milestone 8: kube-prometheus-stack + Loki need ~1560Mi and 3 nodes measured only 452Mi free even after reclaiming the ebs-csi-controller's second replica — see docs/plans/stage8-plan-observability.md §1. Kept the instance type rather than bumping to t3.medium/large: same reasoning as the 2->3 change, and 2 app replicas stay schedulable this way instead of forcing a single-replica fallback."
+  description = "Desired node count. Two t3.small covered Milestone 4/5 (7 app pods + MongoDB) at ~99% memory requests already committed — measured directly (kubectl describe node) during Milestone 7, not assumed, when Argo CD (~950Mi) and External Secrets Operator (~200Mi) needed to schedule on top with zero headroom left. Raised to 3 rather than bumping the instance type: keeps the per-node cost profile, adds a full node's worth of budget (~1.9 vCPU/1.47Gi allocatable). Raised again to 4 for Milestone 8: kube-prometheus-stack + Loki need ~1560Mi and 3 nodes measured only 452Mi free even after reclaiming the ebs-csi-controller's second replica — see docs/plans/stage8-plan-observability.md §1. Raised again to 5 during the M8 verification pass (2026-08-07): the corrected 1714Mi model (see the same §1 update) still didn't account for fragmentation — 4 nodes had 990Mi of AGGREGATE free memory but no single node had more than 385Mi, and Prometheus's own 700Mi request needs 700Mi contiguous on one node. Measured live (`kubectl describe node`) before changing, not assumed: the best of the 4 nodes was still 315Mi short. A 5th node adds a full 1437Mi of contiguous free capacity, which a same-size trim to any existing workload's request cannot, since Kubernetes does not repack already-running pods across nodes."
   type        = number
-  default     = 4
+  default     = 5
 }
 
 variable "node_group_max_size" {
