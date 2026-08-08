@@ -111,6 +111,20 @@ variable "node_group_max_size" {
   default     = 6
 }
 
+# --- CloudFront (Milestone 9) ----------------------------------------------
+
+variable "enable_cloudfront" {
+  description = "Create the S3 + CloudFront static origin. MUST stay false until the cluster exists and the Load Balancer Controller has provisioned the ALB, because cloudfront.tf looks that ALB up with a data source rather than creating it — Terraform does not own it. Flipping this is the second phase of a deliberately two-phase apply; see cloudfront.tf."
+  type        = bool
+
+  # Defaults to false so that `terraform apply` from an empty account still
+  # works exactly as Milestone 4 proved. With the flag off, every resource in
+  # cloudfront.tf has count = 0 and the aws_lb data source is never
+  # evaluated — so a from-zero apply cannot fail on a load balancer that does
+  # not exist yet.
+  default = false
+}
+
 # --- ECR / GitHub Actions --------------------------------------------------
 
 variable "github_org" {
