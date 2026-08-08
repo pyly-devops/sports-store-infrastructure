@@ -74,4 +74,14 @@ output "github_actions_role_arns" {
   value       = { for k, v in aws_iam_role.github_actions_push : k => v.arn }
 }
 
+output "cloudtrail_name" {
+  description = "Milestone 9. Verify with `aws cloudtrail get-trail-status --name <this>` — IsLogging must be true."
+  value       = aws_cloudtrail.main.name
+}
+
+output "cloudtrail_bucket_name" {
+  description = "Milestone 9. Where the audit logs land; first objects appear ~5-15 minutes after apply."
+  value       = aws_s3_bucket.cloudtrail.id
+}
+
 data "aws_caller_identity" "current" {}
