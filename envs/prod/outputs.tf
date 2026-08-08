@@ -84,4 +84,25 @@ output "cloudtrail_bucket_name" {
   value       = aws_s3_bucket.cloudtrail.id
 }
 
+# --- CloudFront (Milestone 9) ----------------------------------------------
+#
+# All three are null while enable_cloudfront is false. `one()` rather than
+# [0]: it returns null for an empty list instead of failing to index it, so
+# these outputs are valid in both phases of the two-phase apply.
+
+output "cloudfront_domain_name" {
+  description = "The public entry point once enable_cloudfront is true, e.g. d111111abcdef8.cloudfront.net. Null while the flag is off."
+  value       = one(aws_cloudfront_distribution.main[*].domain_name)
+}
+
+output "cloudfront_distribution_id" {
+  description = "Consumed by the frontend repo's deploy-static job for `aws cloudfront create-invalidation`. Set it as the CLOUDFRONT_DISTRIBUTION_ID GitHub Actions variable."
+  value       = one(aws_cloudfront_distribution.main[*].id)
+}
+
+output "frontend_bucket_name" {
+  description = "Consumed by the frontend repo's deploy-static job for `aws s3 sync`. Set it as the FRONTEND_BUCKET GitHub Actions variable."
+  value       = one(aws_s3_bucket.frontend[*].id)
+}
+
 data "aws_caller_identity" "current" {}
